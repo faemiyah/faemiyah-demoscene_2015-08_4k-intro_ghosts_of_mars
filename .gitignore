@@ -13,7 +13,7 @@ src/*.o
 src/*.S
 src/*.stripped
 src/*.unprocessed
-*.exe
+./*.exe
 *.ilk
 *.opensdf
 *.pdb
