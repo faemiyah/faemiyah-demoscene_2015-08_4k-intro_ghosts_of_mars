@@ -2,7 +2,7 @@
 
 DNLOAD="../dnload/dnload.py"
 if [ ! -f "${DNLOAD}" ] ; then
-  DNLOAD="../dnload/dnload.py"
+  DNLOAD="../faemiyah-demoscene/dnload/dnload.py"
   if [ ! -f "${DNLOAD}" ] ; then
     DNLOAD="/usr/local/src/dnload/dnload.py"
     if [ ! -f "${DNLOAD}" ] ; then
