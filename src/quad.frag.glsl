@@ -2,7 +2,7 @@
 
 layout(location=0)uniform sampler2D surface_texture;
 layout(location=1)uniform sampler3D noise_volume;
-layout(location=2)uniform vec3[10] v;
+layout(location=2)uniform vec3[10] uniform_array;
 #if defined(USE_LD)
 layout(location=19)uniform mat3 m;
 layout(location=22)uniform vec4[3] scales;
@@ -14,8 +14,8 @@ out vec4 o;
 
 vec4 march_params = vec4(0.3, 0.0, 0.7, 0.009);
 vec3 L=normalize(vec3(2.,.5,-1.));
-float l=v[9].y;
-bool w=1.<abs(v[7].z);
+float l = uniform_array[9].y;
+bool w = 1.0 < abs(uniform_array[7].z);
 
 float f(vec3 p)
 {
@@ -75,7 +75,7 @@ float f(vec3 p)
     c=length(p.xz)*.3;
     c=a*(smoothstep(.0,.5,c*.0025)+.5)+p.y-6.*((sin(clamp(pow(c/10.,1.8)-3.14/2.,-1.57,1.57))-1.)*2.+5.)*cos(clamp(.04*c,.0,3.14));
   }
-  h=p-v[8].xyz;
+  h = p - uniform_array[8].xyz;
   a=length(h);
   if(a<l)return c+l-a;
   return c;
@@ -157,14 +157,18 @@ void main()
 #else // Assuming 720p.
   vec2 c=gl_FragCoord.xy/360.-vec2(1.78,1.);
 #endif
-  vec3 p=mix(mix(v[0],v[1],v[7].y),mix(v[1],v[2],v[7].y),v[7].y)*3.,d=normalize(mix(v[3],v[4],v[7].y)),q=mix(v[5],v[6],v[7].y),r=normalize(cross(d,q)),N,P;
+  vec3 p = mix(mix(uniform_array[0], uniform_array[1], uniform_array[7].y), mix(uniform_array[1], uniform_array[2], uniform_array[7].y), uniform_array[7].y) * 3.0;
+  vec3 d = normalize(mix(uniform_array[3], uniform_array[4], uniform_array[7].y));
+  vec3 q = mix(uniform_array[5], uniform_array[6], uniform_array[7].y);
+  vec3 r = normalize(cross(d,q)),N,P;
   q=normalize(cross(r,d));
   d=normalize(d+c.x*r+c.y*q);
   q=vec3(0);
-  float e,n;
+  float e;
+  float n;
 
   r=vec3(109.,14.,86.);
-  if(0<int(v[7].z)%2&&.0<C(p,d,r,9.))
+  if(0 < int(uniform_array[7].z) % 2 && 0.0 < C(p, d, r, 9.0))
   {
     d=normalize(d+reflect(-d,normalize(p-r))*.2);
     l=-.2;
@@ -186,14 +190,17 @@ void main()
       e =T(P + L * 0.5, L, march_params.w * 3.0, q, q);
       q=(1.-e)*(max(dot(L,N),.0)*mix(vec3(.8,.6,.4),vec3(1),smoothstep(-24.,9.,P.y))+pow(max(dot(d,reflect(L,N)),.0),7.)*.11);
     }
-    r=P-v[8];
+    r = P - uniform_array[8];
     e=l+.5-length(r);
     if(0<e)q+=vec3((dot(Q(P*.009),normalize(r))*.1)+.1,-.05,-.05)*smoothstep(.0,.5,e);
   }
   vec3 s=mix(vec3(.9,.8,.8),vec3(.8,.8,.9),d.y*111.*.02)*(dot(Q(p*.006+d*.1),d)*smoothstep(-.2,.5,-d.y)*.2+.8);
   if(w)n=smoothstep(.0,.4,n);
-  o=vec4(mix(mix(s,vec3(1),pow(max(dot(d,L),.0),7.)),q,n),1.)-(int(gl_FragCoord.y*.5)%2+.1)*(max(max(smoothstep(.98,1.,v[7].y),smoothstep(-.02*v[9].x,.0,-v[7].y)*v[9].x),.1)+l*.02)*dot(c,c);
+  o = vec4(mix(mix(s, vec3(1), pow(max(dot(d, L), 0.0), 7.0)), q, n), 1.0) - (int(gl_FragCoord.y * 0.5) % 2 + 0.1) * (max(max(smoothstep(0.98, 1.0, uniform_array[7].y), smoothstep(-0.02 * uniform_array[9].x, 0.0, -uniform_array[7].y) * uniform_array[9].x), 0.1) + l * 0.02) * dot(c, c);
   r=p;
-  e=C(r,d,v[8],l+.2);
-  if(.0<e)o.xyz-=clamp(1.-(dot(r-p,r-p)-dot(P-p,P-p))*.003,.0,1.)*(1.-pow(e/l,5))*(dot(Q((r-v[8])*.009),d)*.1+.9);
+  e = C(r, d, uniform_array[8], l + 0.2);
+  if(0.0 < e)
+  {
+    o.xyz -= clamp(1.0 - (dot(r - p, r - p) - dot(P - p, P - p)) * 0.003, 0.0, 1.0) * (1.0 - pow(e / l, 5)) * (dot(Q((r - uniform_array[8]) * 0.009), d) * 0.1 + 0.9);
+  }
 }
