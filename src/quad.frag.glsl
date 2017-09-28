@@ -1,7 +1,7 @@
 #version 430
 
-layout(location=0)uniform sampler2D t;
-layout(location=1)uniform sampler3D u;
+layout(location=0)uniform sampler2D surface_texture;
+layout(location=1)uniform sampler3D noise_volume;
 layout(location=2)uniform vec3[10] v;
 #if defined(USE_LD)
 layout(location=19)uniform mat3 m;
@@ -12,7 +12,7 @@ mat3 m=mat3(.42f,-.7f,.58f,.53f,.71f,.46f,-.74f,.12f,.67f);
 #endif
 out vec4 o;
 
-vec4 D=vec4(.3,.0,.7,.009);
+vec4 march_params = vec4(0.3, 0.0, 0.7, 0.009);
 vec3 L=normalize(vec3(2.,.5,-1.));
 float l=v[9].y;
 bool w=1.<abs(v[7].z);
@@ -57,19 +57,19 @@ float f(vec3 p)
     i=m*h*scales[0].y;
     j=m*i*scales[0].z;
     k=m*j*scales[0].w;
-    a=texture(t,h.xz).x*scales[1].x;
-    b=texture(t,i.xz).x*scales[1].y;
-    c=texture(t,j.xz).x*scales[1].z;
-    r=texture(t,k.xz).x*scales[1].w;
+    a = texture(surface_texture, h.xz).x * scales[1].x;
+    b = texture(surface_texture, i.xz).x * scales[1].y;
+    c = texture(surface_texture, j.xz).x * scales[1].z;
+    r = texture(surface_texture, k.xz).x * scales[1].w;
 #else
     h=m*p*.007;
     i=m*h*2.61;
     j=m*i*2.11;
     k=m*j*2.11;
-    a=texture(t,h.xz).x*2.61;
-    b=texture(t,i.xz).x*1.77;
-    c=texture(t,j.xz).x*.11;
-    r=texture(t,k.xz).x*.11;
+    a = texture(surface_texture, h.xz).x * 2.61;
+    b = texture(surface_texture, i.xz).x * 1.77;
+    c = texture(surface_texture, j.xz).x * 0.11;
+    r = texture(surface_texture, k.xz).x * 0.11;
 #endif
     a=r+c+pow(a,2.)+pow(b,2.);
     c=length(p.xz)*.3;
@@ -81,13 +81,13 @@ float f(vec3 p)
   return c;
 }
 
-float T(vec3 p,vec3 d,float I,out vec3 P,out vec3 N)
+float T(vec3 p, vec3 d, float I, out vec3 P, out vec3 N)
 {
   vec3 n,r;
   float a=f(p),c,e,i=1.;
   for(;i>.0;i-=I)
   {
-    n=p+d*max(a*D.z,.02);
+    n = p + d * max(a * march_params.z, 0.02);
     c=f(n);
     if(.0>c)
     {
@@ -106,7 +106,7 @@ float T(vec3 p,vec3 d,float I,out vec3 P,out vec3 N)
           a=e;
         }
       }
-      N=normalize(vec3(f(n.xyz+D.xyy).x,f(n.xyz+D.yxy).x,f(n.xyz+D.yyx).x)-c.x);
+      N = normalize(vec3(f(n.xyz + march_params.xyy).x, f(n.xyz + march_params.yxy).x, f(n.xyz + march_params.yyx).x) - c.x);
       break;
     }
     p=n;
@@ -138,9 +138,9 @@ vec3 Q(vec3 p)
   h=m*p;
   i=m*h*3.;
   j=m*i*3.;
-  a=(texture(u,h).xyz-.5)*2.*.6;
-  b=(texture(u,i).xyz-.5)*2.*.3;
-  c=(texture(u,j).xyz-.5)*2.*.1;
+  a = (texture(noise_volume, h).xyz - 0.5) * 2.0 * 0.6;
+  b = (texture(noise_volume, i).xyz - 0.5) * 2.0 * 0.3;
+  c = (texture(noise_volume, j).xyz - 0.5) * 2.0 * 0.1;
   return normalize(a+b+c);
 }
 
@@ -172,15 +172,18 @@ void main()
   }
 
   // World chosen affects iteration parameters.
-  if(w)D=vec4(.05,.0,.98,.022);
+  if(w)
+  {
+    march_params = vec4(0.05, 0.0, 0.98, 0.022);
+  }
 
-  n=T(p,d,D.w,P,N);
+  n = T(p, d, march_params.w, P, N);
   if(.0<n)
   {
     if(w)q=max(dot(L,N),.0)*mix(vec3(.3,.6,.9),vec3(1),smoothstep(-24.,9.,P.y))+pow(max(dot(d,reflect(L,N)),.0),7.)*.11;
     else
     {
-      e=T(P+L*.5,L,D.w*3.,q,q);
+      e =T(P + L * 0.5, L, march_params.w * 3.0, q, q);
       q=(1.-e)*(max(dot(L,N),.0)*mix(vec3(.8,.6,.4),vec3(1),smoothstep(-24.,9.,P.y))+pow(max(dot(d,reflect(L,N)),.0),7.)*.11);
     }
     r=P-v[8];
