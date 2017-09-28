@@ -5,16 +5,17 @@
 // Define ##############################
 //######################################
 
+#if !defined(DISPLAY_MODE)
 /// Screen mode.
 ///
 /// Negative values windowed.
 /// Positive values fullscreen.
 ///
 /// Only has effect in release mode.
-#define DISPLAY_MODE 720
+#define DISPLAY_MODE -720
+#endif
 
 /// \cond
-#if !defined(USE_LD)
 #if (0 > (DISPLAY_MODE))
 #define SCREEN_F 0
 #define SCREEN_H (-(DISPLAY_MODE))
@@ -24,13 +25,10 @@
 #else
 #error "invalid display mode (pre)"
 #endif
-#if ((720 == SCREEN_H) || (800 == SCREEN_H))
-#define SCREEN_W 1280
-#elif ((1080 == SCREEN_H) || (1200 == SCREEN_H))
-#define SCREEN_W 1920
+#if ((800 == SCREEN_H) || (1200 == SCREEN_H))
+#define SCREEN_W ((SCREEN_H / 10) * 16)
 #else
-#error "invalid display mode (post)"
-#endif
+#define SCREEN_W (((SCREEN_H * 16) / 9) - (((SCREEN_H * 16) / 9) % 4))
 #endif
 /// \endcond
 
