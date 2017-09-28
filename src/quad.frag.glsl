@@ -13,8 +13,8 @@ mat3 noise_matrix = mat3(0.42, -0.7, 0.58, 0.53, 0.71, 0.46, -0.74, 0.12, 0.67);
 out vec4 output_color;
 
 vec4 march_params = vec4(0.3, 0.0, 0.7, 0.009);
-vec3 L=normalize(vec3(2.,.5,-1.));
-float l = uniform_array[9].y;
+vec3 light_direction = normalize(vec3(2.0, 0.5, -1.0));
+float destruction = uniform_array[9].y;
 bool w = 1.0 < abs(uniform_array[7].z);
 
 float f(vec3 p)
@@ -77,7 +77,10 @@ float f(vec3 p)
   }
   h = p - uniform_array[8].xyz;
   a=length(h);
-  if(a<l)return c+l-a;
+  if(a < destruction)
+  {
+    return c + destruction - a;
+  }
   return c;
 }
 
@@ -171,7 +174,7 @@ void main()
   if(0 < int(uniform_array[7].z) % 2 && 0.0 < C(p, d, r, 9.0))
   {
     d=normalize(d+reflect(-d,normalize(p-r))*.2);
-    l=-.2;
+    destruction = -0.2;
     w=!w;
   }
 
@@ -184,23 +187,29 @@ void main()
   n = T(p, d, march_params.w, P, N);
   if(.0<n)
   {
-    if(w)q=max(dot(L,N),.0)*mix(vec3(.3,.6,.9),vec3(1),smoothstep(-24.,9.,P.y))+pow(max(dot(d,reflect(L,N)),.0),7.)*.11;
+    if(w)
+    {
+      q = max(dot(light_direction, N), 0.0) * mix(vec3(0.3, 0.6, 0.9), vec3(1), smoothstep(-24.0, 9.0, P.y)) + pow(max(dot(d, reflect(light_direction, N)), 0.0), 7.0) * 0.11;
+    }
     else
     {
-      e =T(P + L * 0.5, L, march_params.w * 3.0, q, q);
-      q=(1.-e)*(max(dot(L,N),.0)*mix(vec3(.8,.6,.4),vec3(1),smoothstep(-24.,9.,P.y))+pow(max(dot(d,reflect(L,N)),.0),7.)*.11);
+      e =T(P + light_direction * 0.5, light_direction, march_params.w * 3.0, q, q);
+      q = (1.0 - e) * (max(dot(light_direction, N), 0.0) * mix(vec3(0.8, 0.6, 0.4), vec3(1), smoothstep(-24.0, 9.0, P.y)) + pow(max(dot(d, reflect(light_direction, N)), 0.0), 7.0) * 0.11);
     }
     r = P - uniform_array[8];
-    e=l+.5-length(r);
+    e = destruction + 0.5 - length(r);
     if(0<e)q+=vec3((dot(Q(P*.009),normalize(r))*.1)+.1,-.05,-.05)*smoothstep(.0,.5,e);
   }
   vec3 s=mix(vec3(.9,.8,.8),vec3(.8,.8,.9),d.y*111.*.02)*(dot(Q(p*.006+d*.1),d)*smoothstep(-.2,.5,-d.y)*.2+.8);
-  if(w)n=smoothstep(.0,.4,n);
-  output_color = vec4(mix(mix(s, vec3(1), pow(max(dot(d, L), 0.0), 7.0)), q, n), 1.0) - (int(gl_FragCoord.y * 0.5) % 2 + 0.1) * (max(max(smoothstep(0.98, 1.0, uniform_array[7].y), smoothstep(-0.02 * uniform_array[9].x, 0.0, -uniform_array[7].y) * uniform_array[9].x), 0.1) + l * 0.02) * dot(c, c);
+  if(w)
+  {
+    n = smoothstep(0.0, 0.4, n);
+  }
+  output_color = vec4(mix(mix(s, vec3(1), pow(max(dot(d, light_direction), 0.0), 7.0)), q, n), 1.0) - (int(gl_FragCoord.y * 0.5) % 2 + 0.1) * (max(max(smoothstep(0.98, 1.0, uniform_array[7].y), smoothstep(-0.02 * uniform_array[9].x, 0.0, -uniform_array[7].y) * uniform_array[9].x), 0.1) + destruction * 0.02) * dot(c, c);
   r=p;
-  e = C(r, d, uniform_array[8], l + 0.2);
+  e = C(r, d, uniform_array[8], destruction + 0.2);
   if(0.0 < e)
   {
-    output_color.xyz -= clamp(1.0 - (dot(r - p, r - p) - dot(P - p, P - p)) * 0.003, 0.0, 1.0) * (1.0 - pow(e / l, 5)) * (dot(Q((r - uniform_array[8]) * 0.009), d) * 0.1 + 0.9);
+    output_color.xyz -= clamp(1.0 - (dot(r - p, r - p) - dot(P - p, P - p)) * 0.003, 0.0, 1.0) * (1.0 - pow(e / destruction, 5)) * (dot(Q((r - uniform_array[8]) * 0.009), d) * 0.1 + 0.9);
   }
 }
