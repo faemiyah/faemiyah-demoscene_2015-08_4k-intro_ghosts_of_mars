@@ -1018,6 +1018,15 @@ void _start()
             start_ticks -= TIME_SKIP_LONG;
             break;
 
+          case SDLK_F5:
+            if(!program.link(true))
+            {
+              BOOST_THROW_EXCEPTION(std::runtime_error("program compilation failure (default)"));
+            }
+            glBindProgramPipeline(program.getPipelineId());
+            g_program_fragment = program.getPipelineId(GL_FRAGMENT_SHADER);
+            break;
+
           case SDLK_ESCAPE:
             quit = true;
             break;
