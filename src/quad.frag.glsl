@@ -4,13 +4,13 @@ layout(location=0)uniform sampler2D surface_texture;
 layout(location=1)uniform sampler3D noise_volume;
 layout(location=2)uniform vec3[10] uniform_array;
 #if defined(USE_LD)
-layout(location=19)uniform mat3 m;
+layout(location=19)uniform mat3 noise_matrix;
 layout(location=22)uniform vec4[3] scales;
 layout(location=25)uniform vec3 aspect;
 #else
-mat3 m=mat3(.42f,-.7f,.58f,.53f,.71f,.46f,-.74f,.12f,.67f);
+mat3 noise_matrix = mat3(0.42, -0.7, 0.58, 0.53, 0.71, 0.46, -0.74, 0.12, 0.67);
 #endif
-out vec4 o;
+out vec4 output_color;
 
 vec4 march_params = vec4(0.3, 0.0, 0.7, 0.009);
 vec3 L=normalize(vec3(2.,.5,-1.));
@@ -53,19 +53,19 @@ float f(vec3 p)
   else
   {
 #if defined(USE_LD)
-    h=m*p*scales[0].x;
-    i=m*h*scales[0].y;
-    j=m*i*scales[0].z;
-    k=m*j*scales[0].w;
+    h = noise_matrix * p * scales[0].x;
+    i = noise_matrix * h * scales[0].y;
+    j = noise_matrix * i * scales[0].z;
+    k = noise_matrix * j * scales[0].w;
     a = texture(surface_texture, h.xz).x * scales[1].x;
     b = texture(surface_texture, i.xz).x * scales[1].y;
     c = texture(surface_texture, j.xz).x * scales[1].z;
     r = texture(surface_texture, k.xz).x * scales[1].w;
 #else
-    h=m*p*.007;
-    i=m*h*2.61;
-    j=m*i*2.11;
-    k=m*j*2.11;
+    h = noise_matrix * p * 0.007;
+    i = noise_matrix * h * 2.61;
+    j = noise_matrix * i * 2.11;
+    k = noise_matrix * j * 2.11;
     a = texture(surface_texture, h.xz).x * 2.61;
     b = texture(surface_texture, i.xz).x * 1.77;
     c = texture(surface_texture, j.xz).x * 0.11;
@@ -135,9 +135,9 @@ float C(inout vec3 p,vec3 d,vec3 c,float r)
 vec3 Q(vec3 p)
 {
   vec3 a,b,c,h,i,j;
-  h=m*p;
-  i=m*h*3.;
-  j=m*i*3.;
+  h = noise_matrix * p;
+  i = noise_matrix * h * 3.0;
+  j = noise_matrix * i * 3.0;
   a = (texture(noise_volume, h).xyz - 0.5) * 2.0 * 0.6;
   b = (texture(noise_volume, i).xyz - 0.5) * 2.0 * 0.3;
   c = (texture(noise_volume, j).xyz - 0.5) * 2.0 * 0.1;
@@ -196,11 +196,11 @@ void main()
   }
   vec3 s=mix(vec3(.9,.8,.8),vec3(.8,.8,.9),d.y*111.*.02)*(dot(Q(p*.006+d*.1),d)*smoothstep(-.2,.5,-d.y)*.2+.8);
   if(w)n=smoothstep(.0,.4,n);
-  o = vec4(mix(mix(s, vec3(1), pow(max(dot(d, L), 0.0), 7.0)), q, n), 1.0) - (int(gl_FragCoord.y * 0.5) % 2 + 0.1) * (max(max(smoothstep(0.98, 1.0, uniform_array[7].y), smoothstep(-0.02 * uniform_array[9].x, 0.0, -uniform_array[7].y) * uniform_array[9].x), 0.1) + l * 0.02) * dot(c, c);
+  output_color = vec4(mix(mix(s, vec3(1), pow(max(dot(d, L), 0.0), 7.0)), q, n), 1.0) - (int(gl_FragCoord.y * 0.5) % 2 + 0.1) * (max(max(smoothstep(0.98, 1.0, uniform_array[7].y), smoothstep(-0.02 * uniform_array[9].x, 0.0, -uniform_array[7].y) * uniform_array[9].x), 0.1) + l * 0.02) * dot(c, c);
   r=p;
   e = C(r, d, uniform_array[8], l + 0.2);
   if(0.0 < e)
   {
-    o.xyz -= clamp(1.0 - (dot(r - p, r - p) - dot(P - p, P - p)) * 0.003, 0.0, 1.0) * (1.0 - pow(e / l, 5)) * (dot(Q((r - uniform_array[8]) * 0.009), d) * 0.1 + 0.9);
+    output_color.xyz -= clamp(1.0 - (dot(r - p, r - p) - dot(P - p, P - p)) * 0.003, 0.0, 1.0) * (1.0 - pow(e / l, 5)) * (dot(Q((r - uniform_array[8]) * 0.009), d) * 0.1 + 0.9);
   }
 }
