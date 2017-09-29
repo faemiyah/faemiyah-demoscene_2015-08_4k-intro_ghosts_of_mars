@@ -82,8 +82,7 @@ float sdf(vec3 point)
     cc = length(point.xz) * 0.3;
     cc = aa * (smoothstep(0.0, 0.5, cc * 0.0025) + 0.5) + point.y - 6.0 * ((sin(clamp(pow(cc / 10.0, 1.8) - 3.14/2.0, -1.57, 1.57)) - 1.0) * 2.0 + 5.0) * cos(clamp(0.04 * cc, 0.0, 3.14));
   }
-  hh = point - uniform_array[8].xyz;
-  aa = length(hh);
+  aa = length(point - uniform_array[8].xyz);
   if(aa < destruction)
   {
     return cc + destruction - aa;
