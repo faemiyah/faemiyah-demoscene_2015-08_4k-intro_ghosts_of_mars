@@ -15,17 +15,24 @@ out vec4 output_color;
 vec4 march_params = vec4(0.3, 0.0, 0.7, 0.009);
 vec3 light_direction = normalize(vec3(2.0, 0.5, -1.0));
 float destruction = uniform_array[9].y;
-bool w = 1.0 < abs(uniform_array[7].z);
+bool world_toggle = 1.0 < abs(uniform_array[7].z);
 
-float f(vec3 p)
+float sdf(vec3 point)
 {
-  float a,b,c,r;
-  vec3 h,i,j,k;
-  if(w)
+  float a;
+  float b;
+  float c;
+  float r;
+  vec3 h;
+  vec3 i;
+  vec3 j;
+  vec3 k;
+
+  if(world_toggle)
   {
     // Using mandelbox distance estimator from 2010-09-10 post by Rrrola in fractalforums, because it's better
     // than the one Warma made.
-    h=p*.02;
+    h = point * 0.02;
     vec4 r=vec4(h,1); // distance estimate: r.w
 #if defined(USE_LD)
     for(int i=0;i<int(scales[2].x);i++)
@@ -53,7 +60,7 @@ float f(vec3 p)
   else
   {
 #if defined(USE_LD)
-    h = noise_matrix * p * scales[0].x;
+    h = noise_matrix * point * scales[0].x;
     i = noise_matrix * h * scales[0].y;
     j = noise_matrix * i * scales[0].z;
     k = noise_matrix * j * scales[0].w;
@@ -62,7 +69,7 @@ float f(vec3 p)
     c = texture(surface_texture, j.xz).x * scales[1].z;
     r = texture(surface_texture, k.xz).x * scales[1].w;
 #else
-    h = noise_matrix * p * 0.007;
+    h = noise_matrix * point * 0.007;
     i = noise_matrix * h * 2.61;
     j = noise_matrix * i * 2.11;
     k = noise_matrix * j * 2.11;
@@ -71,12 +78,12 @@ float f(vec3 p)
     c = texture(surface_texture, j.xz).x * 0.11;
     r = texture(surface_texture, k.xz).x * 0.11;
 #endif
-    a=r+c+pow(a,2.)+pow(b,2.);
-    c=length(p.xz)*.3;
-    c=a*(smoothstep(.0,.5,c*.0025)+.5)+p.y-6.*((sin(clamp(pow(c/10.,1.8)-3.14/2.,-1.57,1.57))-1.)*2.+5.)*cos(clamp(.04*c,.0,3.14));
+    a = r + c + pow(a, 2.0) + pow(b, 2.0);
+    c = length(point.xz) * 0.3;
+    c = a * (smoothstep(0.0, 0.5, c * 0.0025) + 0.5) + point.y - 6.0 * ((sin(clamp(pow(c / 10.0, 1.8) - 3.14/2.0, -1.57, 1.57)) - 1.0) * 2.0 + 5.0) * cos(clamp(0.04 * c, 0.0, 3.14));
   }
-  h = p - uniform_array[8].xyz;
-  a=length(h);
+  h = point - uniform_array[8].xyz;
+  a = length(h);
   if(a < destruction)
   {
     return c + destruction - a;
@@ -87,17 +94,21 @@ float f(vec3 p)
 float T(vec3 p, vec3 d, float I, out vec3 P, out vec3 N)
 {
   vec3 n,r;
-  float a=f(p),c,e,i=1.;
+  float a = sdf(p);
+  float c;
+  float e;
+  float i = 1.0;
+
   for(;i>.0;i-=I)
   {
     n = p + d * max(a * march_params.z, 0.02);
-    c=f(n);
+    c = sdf(n);
     if(.0>c)
     {
       for(int j=0;j<5;++j)
       {
         r=(p+n)*.5;
-        e=f(r);
+        e = sdf(r);
         if(.0>e)
         {
           n=r;
@@ -109,7 +120,7 @@ float T(vec3 p, vec3 d, float I, out vec3 P, out vec3 N)
           a=e;
         }
       }
-      N = normalize(vec3(f(n.xyz + march_params.xyy).x, f(n.xyz + march_params.yxy).x, f(n.xyz + march_params.yyx).x) - c.x);
+      N = normalize(vec3(sdf(n.xyz + march_params.xyy).x, sdf(n.xyz + march_params.yxy).x, sdf(n.xyz + march_params.yyx).x) - c.x);
       break;
     }
     p=n;
@@ -175,11 +186,11 @@ void main()
   {
     d=normalize(d+reflect(-d,normalize(p-r))*.2);
     destruction = -0.2;
-    w=!w;
+    world_toggle = !world_toggle;
   }
 
   // World chosen affects iteration parameters.
-  if(w)
+  if(world_toggle)
   {
     march_params = vec4(0.05, 0.0, 0.98, 0.022);
   }
@@ -187,7 +198,7 @@ void main()
   n = T(p, d, march_params.w, P, N);
   if(.0<n)
   {
-    if(w)
+    if(world_toggle)
     {
       q = max(dot(light_direction, N), 0.0) * mix(vec3(0.3, 0.6, 0.9), vec3(1), smoothstep(-24.0, 9.0, P.y)) + pow(max(dot(d, reflect(light_direction, N)), 0.0), 7.0) * 0.11;
     }
@@ -200,14 +211,19 @@ void main()
     e = destruction + 0.5 - length(r);
     if(0<e)q+=vec3((dot(Q(P*.009),normalize(r))*.1)+.1,-.05,-.05)*smoothstep(.0,.5,e);
   }
+
   vec3 s=mix(vec3(.9,.8,.8),vec3(.8,.8,.9),d.y*111.*.02)*(dot(Q(p*.006+d*.1),d)*smoothstep(-.2,.5,-d.y)*.2+.8);
-  if(w)
+
+  if(world_toggle)
   {
     n = smoothstep(0.0, 0.4, n);
   }
+
   output_color = vec4(mix(mix(s, vec3(1), pow(max(dot(d, light_direction), 0.0), 7.0)), q, n), 1.0) - (int(gl_FragCoord.y * 0.5) % 2 + 0.1) * (max(max(smoothstep(0.98, 1.0, uniform_array[7].y), smoothstep(-0.02 * uniform_array[9].x, 0.0, -uniform_array[7].y) * uniform_array[9].x), 0.1) + destruction * 0.02) * dot(c, c);
-  r=p;
+
+  r = p;
   e = C(r, d, uniform_array[8], destruction + 0.2);
+
   if(0.0 < e)
   {
     output_color.xyz -= clamp(1.0 - (dot(r - p, r - p) - dot(P - p, P - p)) * 0.003, 0.0, 1.0) * (1.0 - pow(e / destruction, 5)) * (dot(Q((r - uniform_array[8]) * 0.009), d) * 0.1 + 0.9);
