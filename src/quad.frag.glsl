@@ -91,44 +91,45 @@ float sdf(vec3 point)
   return cc;
 }
 
-float T(vec3 p, vec3 d, float I, out vec3 P, out vec3 N)
+float raycast(vec3 point, vec3 direction, float interval, out vec3 out_point, out vec3 out_normal)
 {
-  vec3 n;
-  vec3 r;
-  float a = sdf(p);
-  float c;
-  float e;
-  float i = 1.0;
+  vec3 next;
+  vec3 mid_point;
+  float prev_value = sdf(point);
+  float current_value;
+  float mid_value;
+  float ii = 1.0;
 
-  for(;i>.0;i-=I)
+  for(; ii > 0.0; ii -= interval)
   {
-    n = p + d * max(a * march_params.z, 0.02);
-    c = sdf(n);
-    if(.0>c)
+    next = point + direction * max(prev_value * march_params.z, 0.02);
+    current_value = sdf(next);
+    if(0.0 > current_value)
     {
-      for(int j=0;j<5;++j)
+      for(int jj = 0; jj < 5; ++jj)
       {
-        r=(p+n)*.5;
-        e = sdf(r);
-        if(.0>e)
+        mid_point = (point + next) * 0.5;
+        mid_value = sdf(mid_point);
+        if(0.0 > mid_value)
         {
-          n=r;
-          c=e;
+          next = mid_point;
+          current_value = mid_value;
         }
         else
         {
-          p=r;
-          a=e;
+          point = mid_point;
+          prev_value = mid_value;
         }
       }
-      N = normalize(vec3(sdf(n.xyz + march_params.xyy).x, sdf(n.xyz + march_params.yxy).x, sdf(n.xyz + march_params.yyx).x) - c.x);
+
+      out_normal = normalize(vec3(sdf(next.xyz + march_params.xyy).x, sdf(next.xyz + march_params.yxy).x, sdf(next.xyz + march_params.yyx).x) - current_value);
       break;
     }
-    p=n;
-    a=c;
+    point = next;
+    prev_value = current_value;
   }
-  P=p;
-  return i;
+  out_point = point;
+  return ii;
 }
 
 float C(inout vec3 p,vec3 d,vec3 c,float r)
@@ -196,7 +197,7 @@ void main()
     march_params = vec4(0.05, 0.0, 0.98, 0.022);
   }
 
-  n = T(p, d, march_params.w, P, N);
+  n = raycast(p, d, march_params.w, P, N);
   if(.0<n)
   {
     if(world_toggle)
@@ -205,7 +206,7 @@ void main()
     }
     else
     {
-      e =T(P + light_direction * 0.5, light_direction, march_params.w * 3.0, q, q);
+      e = raycast(P + light_direction * 0.5, light_direction, march_params.w * 3.0, q, q);
       q = (1.0 - e) * (max(dot(light_direction, N), 0.0) * mix(vec3(0.8, 0.6, 0.4), vec3(1), smoothstep(-24.0, 9.0, P.y)) + pow(max(dot(d, reflect(light_direction, N)), 0.0), 7.0) * 0.11);
     }
     r = P - uniform_array[8];
