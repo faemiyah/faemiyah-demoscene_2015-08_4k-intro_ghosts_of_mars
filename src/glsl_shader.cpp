@@ -138,8 +138,6 @@ GlslShader::GlslShader(GLenum type, const char *src1) :
   m_pipeline_id(0)
 {
   m_files.push_back(std::string(src1));
-
-  compile();
 }
 
 GlslShader::GlslShader(GLenum type, const char *src1, const char *src2) :
@@ -149,8 +147,6 @@ GlslShader::GlslShader(GLenum type, const char *src1, const char *src2) :
 {
   m_files.push_back(std::string(src1));
   m_files.push_back(std::string(src2));
-
-  compile();
 }
 
 GlslShader::~GlslShader()

@@ -19,81 +19,82 @@ bool world_toggle = 1.0 < abs(uniform_array[7].z);
 
 float sdf(vec3 point)
 {
-  float a;
-  float b;
-  float c;
-  float r;
-  vec3 h;
-  vec3 i;
-  vec3 j;
-  vec3 k;
+  float aa;
+  float bb;
+  float cc;
+  float dd;
+  vec3 hh;
+  vec3 ii;
+  vec3 jj;
+  vec3 kk;
 
   if(world_toggle)
   {
     // Using mandelbox distance estimator from 2010-09-10 post by Rrrola in fractalforums, because it's better
     // than the one Warma made.
-    h = point * 0.02;
-    vec4 r=vec4(h,1); // distance estimate: r.w
+    hh = point * 0.02;
+    vec4 rr = vec4(hh, 1.0); // distance estimate: rr.w
 #if defined(USE_LD)
-    for(int i=0;i<int(scales[2].x);i++)
+    for(int iter = 0; iter < int(scales[2].x); ++iter)
 #else
-      for(int i=0;i<9;i++)
+    for(int iter = 0; iter < 9; ++iter)
 #endif
-      {
-        r.xyz=clamp(r.xyz,-1.,1.)*2.-r.xyz; // laatikko foldaus
-        c=dot(r.xyz,r.xyz);
+    {
+      rr.xyz = clamp(rr.xyz, -1.0, 1.0) * 2.0 - rr.xyz; // laatikko foldaus
+      cc = dot(rr.xyz, rr.xyz);
 #if defined(USE_LD)
-        r*=clamp(max(scales[2].y/c,scales[2].y),.0,1.);
-        r=r*vec4(vec3(scales[2].z),abs(scales[2].z))/scales[2].y+vec4(h,1.);
+      rr *= clamp(max(scales[2].y / cc, scales[2].y), 0.0, 1.0);
+      rr = rr * vec4(vec3(scales[2].z), abs(scales[2].z)) / scales[2].y + vec4(hh, 1.0);
 #else
-        r*=clamp(max(.824/c,.824),.0,1.);
-        r=r*vec4(vec3(-2.742),2.742)+vec4(h,1.);
+      rr *= clamp(max(0.824 / cc, 0.824), 0.0, 1.0);
+      rr = rr * vec4(vec3(-2.742), 2.742) + vec4(hh, 1.0);
 #endif
-      }
-    r.xyz*=clamp(h.y+1,.1,1.);
+    }
+    rr.xyz*=clamp(hh.y + 1.0, 0.1, 1.0);
 #if defined(USE_LD)
-    c=((length(r.xyz)-abs(scales[2].z-1.))/r.w-pow(abs(scales[2].z),float(1)-scales[2].x))*50.;
+    cc = ((length(rr.xyz) - abs(scales[2].z - 1.0)) / rr.w - pow(abs(scales[2].z), 1.0 - scales[2].x)) * 50.0;
 #else
-    c=((length(r.xyz)-3.259)/r.w-.001475)*50.; //-pow(2.259,-8.)
+    cc = ((length(rr.xyz) - 3.259) / rr.w - 0.001475) * 50.0; // -pow(2.259, -8.0)
 #endif
   }
   else
   {
 #if defined(USE_LD)
-    h = noise_matrix * point * scales[0].x;
-    i = noise_matrix * h * scales[0].y;
-    j = noise_matrix * i * scales[0].z;
-    k = noise_matrix * j * scales[0].w;
-    a = texture(surface_texture, h.xz).x * scales[1].x;
-    b = texture(surface_texture, i.xz).x * scales[1].y;
-    c = texture(surface_texture, j.xz).x * scales[1].z;
-    r = texture(surface_texture, k.xz).x * scales[1].w;
+    hh = noise_matrix * point * scales[0].x;
+    ii = noise_matrix * hh * scales[0].y;
+    jj = noise_matrix * ii * scales[0].z;
+    kk = noise_matrix * jj * scales[0].w;
+    aa = texture(surface_texture, hh.xz).x * scales[1].x;
+    bb = texture(surface_texture, ii.xz).x * scales[1].y;
+    cc = texture(surface_texture, jj.xz).x * scales[1].z;
+    dd = texture(surface_texture, kk.xz).x * scales[1].w;
 #else
-    h = noise_matrix * point * 0.007;
-    i = noise_matrix * h * 2.61;
-    j = noise_matrix * i * 2.11;
-    k = noise_matrix * j * 2.11;
-    a = texture(surface_texture, h.xz).x * 2.61;
-    b = texture(surface_texture, i.xz).x * 1.77;
-    c = texture(surface_texture, j.xz).x * 0.11;
-    r = texture(surface_texture, k.xz).x * 0.11;
+    hh = noise_matrix * point * 0.007;
+    ii = noise_matrix * hh * 2.61;
+    jj = noise_matrix * ii * 2.11;
+    kk = noise_matrix * jj * 2.11;
+    aa = texture(surface_texture, hh.xz).x * 2.61;
+    bb = texture(surface_texture, ii.xz).x * 1.77;
+    cc = texture(surface_texture, jj.xz).x * 0.11;
+    dd = texture(surface_texture, kk.xz).x * 0.11;
 #endif
-    a = r + c + pow(a, 2.0) + pow(b, 2.0);
-    c = length(point.xz) * 0.3;
-    c = a * (smoothstep(0.0, 0.5, c * 0.0025) + 0.5) + point.y - 6.0 * ((sin(clamp(pow(c / 10.0, 1.8) - 3.14/2.0, -1.57, 1.57)) - 1.0) * 2.0 + 5.0) * cos(clamp(0.04 * c, 0.0, 3.14));
+    aa = dd + cc + pow(aa, 2.0) + pow(bb, 2.0);
+    cc = length(point.xz) * 0.3;
+    cc = aa * (smoothstep(0.0, 0.5, cc * 0.0025) + 0.5) + point.y - 6.0 * ((sin(clamp(pow(cc / 10.0, 1.8) - 3.14/2.0, -1.57, 1.57)) - 1.0) * 2.0 + 5.0) * cos(clamp(0.04 * cc, 0.0, 3.14));
   }
-  h = point - uniform_array[8].xyz;
-  a = length(h);
-  if(a < destruction)
+  hh = point - uniform_array[8].xyz;
+  aa = length(hh);
+  if(aa < destruction)
   {
-    return c + destruction - a;
+    return cc + destruction - aa;
   }
-  return c;
+  return cc;
 }
 
 float T(vec3 p, vec3 d, float I, out vec3 P, out vec3 N)
 {
-  vec3 n,r;
+  vec3 n;
+  vec3 r;
   float a = sdf(p);
   float c;
   float e;
