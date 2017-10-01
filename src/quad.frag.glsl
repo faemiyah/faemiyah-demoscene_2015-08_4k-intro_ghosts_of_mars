@@ -50,7 +50,7 @@ float sdf(vec3 point)
       rr = rr * vec4(vec3(-2.742), 2.742) + vec4(hh, 1.0);
 #endif
     }
-    rr.xyz*=clamp(hh.y + 1.0, 0.1, 1.0);
+    rr.xyz *= clamp(hh.y + 1.0, 0.1, 1.0);
 #if defined(USE_LD)
     cc = ((length(rr.xyz) - abs(scales[2].z - 1.0)) / rr.w - pow(abs(scales[2].z), 1.0 - scales[2].x)) * 50.0;
 #else
@@ -131,32 +131,40 @@ float raycast(vec3 point, vec3 direction, float interval, out vec3 out_point, ou
   return ii;
 }
 
-float C(inout vec3 p,vec3 d,vec3 c,float r)
+float intersect_sphere(inout vec3 point, vec3 direction, vec3 center, float radius)
 {
-  vec3 q=p-c;
-  float e=dot(q,q)-r*r,a=dot(q,d);
-  if(0>e||0>a)
+  vec3 diff = point - center;
+  float ee = dot(diff, diff) - radius * radius;
+  float aa = dot(diff, direction);
+  
+  if(0 > ee || 0 > aa)
   {
-    e=a*a-e;
-    if(0<e)
+    ee = aa * aa - ee;
+    if(0 < ee)
     {
-      p+=max(-a-sqrt(e),.0)*d;
-      return length(a*d-q);
+      point += max(-aa - sqrt(ee), 0.0) * direction;
+      return length(aa * direction - diff);
     }
   }
-  return .0;
+
+  return 0.0;
 }
 
-vec3 Q(vec3 p)
+vec3 sample_noise(vec3 point)
 {
-  vec3 a,b,c,h,i,j;
-  h = noise_matrix * p;
-  i = noise_matrix * h * 3.0;
-  j = noise_matrix * i * 3.0;
-  a = (texture(noise_volume, h).xyz - 0.5) * 2.0 * 0.6;
-  b = (texture(noise_volume, i).xyz - 0.5) * 2.0 * 0.3;
-  c = (texture(noise_volume, j).xyz - 0.5) * 2.0 * 0.1;
-  return normalize(a+b+c);
+  vec3 aa;
+  vec3 bb;
+  vec3 cc;
+  vec3 hh;
+  vec3 ii;
+  vec3 jj;
+  hh = noise_matrix * point;
+  ii = noise_matrix * hh * 3.0;
+  jj = noise_matrix * ii * 3.0;
+  aa = (texture(noise_volume, hh).xyz - 0.5) * 2.0 * 0.6;
+  bb = (texture(noise_volume, ii).xyz - 0.5) * 2.0 * 0.3;
+  cc = (texture(noise_volume, jj).xyz - 0.5) * 2.0 * 0.1;
+  return normalize(aa + bb + cc);
 }
 
 void main()
@@ -183,7 +191,7 @@ void main()
   float n;
 
   r=vec3(109.,14.,86.);
-  if(0 < int(uniform_array[7].z) % 2 && 0.0 < C(p, d, r, 9.0))
+  if(0 < int(uniform_array[7].z) % 2 && 0.0 < intersect_sphere(p, d, r, 9.0))
   {
     d=normalize(d+reflect(-d,normalize(p-r))*.2);
     destruction = -0.2;
@@ -210,10 +218,13 @@ void main()
     }
     r = P - uniform_array[8];
     e = destruction + 0.5 - length(r);
-    if(0<e)q+=vec3((dot(Q(P*.009),normalize(r))*.1)+.1,-.05,-.05)*smoothstep(.0,.5,e);
+    if(0<e)
+    {
+      q += vec3((dot(sample_noise(P * 0.009), normalize(r)) * 0.1) + 0.1, -0.05, -0.05) * smoothstep(0.0, 0.5, e);
+    }
   }
 
-  vec3 s=mix(vec3(.9,.8,.8),vec3(.8,.8,.9),d.y*111.*.02)*(dot(Q(p*.006+d*.1),d)*smoothstep(-.2,.5,-d.y)*.2+.8);
+  vec3 s = mix(vec3(0.9, 0.8, 0.8), vec3(0.8, 0.8, 0.9), d.y * 111.0 * 0.02) * (dot(sample_noise(p * 0.006 + d * 0.1), d) * smoothstep(-0.2, 0.5, -d.y) * 0.2 + 0.8);
 
   if(world_toggle)
   {
@@ -223,10 +234,10 @@ void main()
   output_color = vec4(mix(mix(s, vec3(1), pow(max(dot(d, light_direction), 0.0), 7.0)), q, n), 1.0) - (int(gl_FragCoord.y * 0.5) % 2 + 0.1) * (max(max(smoothstep(0.98, 1.0, uniform_array[7].y), smoothstep(-0.02 * uniform_array[9].x, 0.0, -uniform_array[7].y) * uniform_array[9].x), 0.1) + destruction * 0.02) * dot(c, c);
 
   r = p;
-  e = C(r, d, uniform_array[8], destruction + 0.2);
+  e = intersect_sphere(r, d, uniform_array[8], destruction + 0.2);
 
   if(0.0 < e)
   {
-    output_color.xyz -= clamp(1.0 - (dot(r - p, r - p) - dot(P - p, P - p)) * 0.003, 0.0, 1.0) * (1.0 - pow(e / destruction, 5)) * (dot(Q((r - uniform_array[8]) * 0.009), d) * 0.1 + 0.9);
+    output_color.xyz -= clamp(1.0 - (dot(r - p, r - p) - dot(P - p, P - p)) * 0.003, 0.0, 1.0) * (1.0 - pow(e / destruction, 5)) * (dot(sample_noise((r - uniform_array[8]) * 0.009), d) * 0.1 + 0.9);
   }
 }
