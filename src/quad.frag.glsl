@@ -182,20 +182,20 @@ void main()
 #endif
   vec3 point = mix(mix(uniform_array[0], uniform_array[1], uniform_array[7].y), mix(uniform_array[1], uniform_array[2], uniform_array[7].y), uniform_array[7].y) * 3.0;
   vec3 direction = normalize(mix(uniform_array[3], uniform_array[4], uniform_array[7].y));
-  vec3 q = mix(uniform_array[5], uniform_array[6], uniform_array[7].y);
-  vec3 r = normalize(cross(direction, q));
-  vec3 N;
-  vec3 P;
-  q=normalize(cross(r, direction));
-  direction = normalize(direction + pixcoord.x * r + pixcoord.y * q);
-  q=vec3(0);
-  float e;
-  float n;
+  vec3 up = mix(uniform_array[5], uniform_array[6], uniform_array[7].y);
+  vec3 right = normalize(cross(direction, up));
+  vec3 normal;
+  vec3 intersection;
+  up = normalize(cross(right, direction));
+  direction = normalize(direction + pixcoord.x * right + pixcoord.y * up);
+  up = vec3(0);
+  float tmp1;
+  float tmp2;
 
-  r=vec3(109.,14.,86.);
-  if(0 < int(uniform_array[7].z) % 2 && 0.0 < intersect_sphere(point, direction, r, 9.0))
+  right = vec3(109.0, 14.0, 86.0);
+  if(0 < int(uniform_array[7].z) % 2 && 0.0 < intersect_sphere(point, direction, right, 9.0))
   {
-    direction = normalize(direction + reflect(-direction, normalize(point - r)) * 0.2);
+    direction = normalize(direction + reflect(-direction, normalize(point - right)) * 0.2);
     destruction = -0.2;
     world_toggle = !world_toggle;
   }
@@ -206,40 +206,40 @@ void main()
     march_params = vec4(0.05, 0.0, 0.98, 0.022);
   }
 
-  n = raycast(point, direction, march_params.w, P, N);
-  if(.0<n)
+  tmp2 = raycast(point, direction, march_params.w, intersection, normal);
+  if(.0 < tmp2)
   {
     if(world_toggle)
     {
-      q = max(dot(light_direction, N), 0.0) * mix(vec3(0.3, 0.6, 0.9), vec3(1), smoothstep(-24.0, 9.0, P.y)) + pow(max(dot(direction, reflect(light_direction, N)), 0.0), 7.0) * 0.11;
+      up = max(dot(light_direction, normal), 0.0) * mix(vec3(0.3, 0.6, 0.9), vec3(1), smoothstep(-24.0, 9.0, intersection.y)) + pow(max(dot(direction, reflect(light_direction, normal)), 0.0), 7.0) * 0.11;
     }
     else
     {
-      e = raycast(P + light_direction * 0.5, light_direction, march_params.w * 3.0, q, q);
-      q = (1.0 - e) * (max(dot(light_direction, N), 0.0) * mix(vec3(0.8, 0.6, 0.4), vec3(1), smoothstep(-24.0, 9.0, P.y)) + pow(max(dot(direction, reflect(light_direction, N)), 0.0), 7.0) * 0.11);
+      tmp1 = raycast(intersection + light_direction * 0.5, light_direction, march_params.w * 3.0, up, up);
+      up = (1.0 - tmp1) * (max(dot(light_direction, normal), 0.0) * mix(vec3(0.8, 0.6, 0.4), vec3(1), smoothstep(-24.0, 9.0, intersection.y)) + pow(max(dot(direction, reflect(light_direction, normal)), 0.0), 7.0) * 0.11);
     }
-    r = P - uniform_array[8];
-    e = destruction + 0.5 - length(r);
-    if(0<e)
+    right = intersection - uniform_array[8];
+    tmp1 = destruction + 0.5 - length(right);
+    if(0 < tmp1)
     {
-      q += vec3((dot(sample_noise(P * 0.009), normalize(r)) * 0.1) + 0.1, -0.05, -0.05) * smoothstep(0.0, 0.5, e);
+      up += vec3((dot(sample_noise(intersection * 0.009), normalize(right)) * 0.1) + 0.1, -0.05, -0.05) * smoothstep(0.0, 0.5, tmp1);
     }
   }
 
-  vec3 s = mix(vec3(0.9, 0.8, 0.8), vec3(0.8, 0.8, 0.9), direction.y * 111.0 * 0.02) * (dot(sample_noise(point * 0.006 + direction * 0.1), direction) * smoothstep(-0.2, 0.5, -direction.y) * 0.2 + 0.8);
+  vec3 fog = mix(vec3(0.9, 0.8, 0.8), vec3(0.8, 0.8, 0.9), direction.y * 111.0 * 0.02) * (dot(sample_noise(point * 0.006 + direction * 0.1), direction) * smoothstep(-0.2, 0.5, -direction.y) * 0.2 + 0.8);
 
   if(world_toggle)
   {
-    n = smoothstep(0.0, 0.4, n);
+    tmp2 = smoothstep(0.0, 0.4, tmp2);
   }
 
-  output_color = vec4(mix(mix(s, vec3(1), pow(max(dot(direction, light_direction), 0.0), 7.0)), q, n), 1.0) - (int(gl_FragCoord.y * 0.5) % 2 + 0.1) * (max(max(smoothstep(0.98, 1.0, uniform_array[7].y), smoothstep(-0.02 * uniform_array[9].x, 0.0, -uniform_array[7].y) * uniform_array[9].x), 0.1) + destruction * 0.02) * dot(pixcoord, pixcoord);
+  output_color = vec4(mix(mix(fog, vec3(1), pow(max(dot(direction, light_direction), 0.0), 7.0)), up, tmp2), 1.0) - (int(gl_FragCoord.y * 0.5) % 2 + 0.1) * (max(max(smoothstep(0.98, 1.0, uniform_array[7].y), smoothstep(-0.02 * uniform_array[9].x, 0.0, -uniform_array[7].y) * uniform_array[9].x), 0.1) + destruction * 0.02) * dot(pixcoord, pixcoord);
 
-  r = point;
-  e = intersect_sphere(r, direction, uniform_array[8], destruction + 0.2);
+  right = point;
+  tmp1 = intersect_sphere(right, direction, uniform_array[8], destruction + 0.2);
 
-  if(0.0 < e)
+  if(0.0 < tmp1)
   {
-    output_color.xyz -= clamp(1.0 - (dot(r - point, r - point) - dot(P - point, P - point)) * 0.003, 0.0, 1.0) * (1.0 - pow(e / destruction, 5)) * (dot(sample_noise((r - uniform_array[8]) * 0.009), direction) * 0.1 + 0.9);
+    output_color.xyz -= clamp(1.0 - (dot(right - point, right - point) - dot(intersection - point, intersection - point)) * 0.003, 0.0, 1.0) * (1.0 - pow(tmp1 / destruction, 5)) * (dot(sample_noise((right - uniform_array[8]) * 0.009), direction) * 0.1 + 0.9);
   }
 }
