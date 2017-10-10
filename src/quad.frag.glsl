@@ -2,10 +2,10 @@
 
 layout(location=0)uniform sampler2D surface_texture;
 layout(location=1)uniform sampler3D noise_volume;
-layout(location=2)uniform vec3[10] uniform_array;
+layout(location=2)uniform vec3 uniform_array[10];
 #if defined(USE_LD)
 layout(location=19)uniform mat3 noise_matrix;
-layout(location=22)uniform vec4[3] scales;
+layout(location=22)uniform vec4 scales[3];
 layout(location=25)uniform vec3 aspect;
 #else
 mat3 noise_matrix = mat3(0.42, -0.7, 0.58, 0.53, 0.71, 0.46, -0.74, 0.12, 0.67);
