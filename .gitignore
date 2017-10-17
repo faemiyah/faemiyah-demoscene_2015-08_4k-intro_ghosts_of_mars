@@ -14,6 +14,7 @@ src/ghosts_of_mars
 *.o
 *.opensdf
 *.pdb
+*.preprocessed
 *.S
 *.sdf
 *.sln
